@@ -1,0 +1,137 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using HockeyEditor;
+using System.Net;
+using System.IO;
+using System.Windows.Forms;
+
+namespace FootballGame
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.Title = "Football";
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine(@"  ______ ____   ____ _______ ____          _      _      ");
+            Console.WriteLine(@" |  ____/ __ \ / __ \__   __|  _ \   /\   | |    | |     ");
+            Console.WriteLine(@" | |__ | |  | | |  | | | |  | |_) | /  \  | |    | |     ");
+            Console.WriteLine(@" |  __|| |  | | |  | | | |  |  _ < / /\ \ | |    | |     ");
+            Console.WriteLine(@" | |   | |__| | |__| | | |  | |_) / ____ \| |____| |____ ");
+            Console.WriteLine(@" |_|    \____/ \____/  |_|  |____/_/    \_\______|______|");
+            Console.WriteLine("made by tymb                                        v0.28");
+            using (WebClient client = new WebClient())
+            {
+                string htmlCode = client.DownloadString("http://pastebin.com/raw.php?i=CgkGGUPB");
+                if (htmlCode != "0.28")
+                {
+                    Console.WriteLine("You have outdated version, do you want to download " + htmlCode + "? Enter Y/N");
+                    string userInput = Console.ReadLine();
+                    switch (userInput)
+                    {
+                        case "Y":
+                            Console.WriteLine("Opening link for download...");
+                            System.Diagnostics.Process.Start("https://drive.google.com/open?id=1u6KCJCVj0Aocwsgl1E1hyVfiflP-JsLb");
+                            break;
+                        case "N":
+                            break;
+                    }
+                }
+            }
+            string path = "data\\hockey.exe";
+            if (File.Exists(path))
+            {
+                System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = Path.GetFileName(path),
+                    WorkingDirectory = Path.GetDirectoryName(path)
+                };
+                System.Diagnostics.Process.Start(psi);
+            }
+            else
+            {
+                MessageBox.Show("hockey.exe not found", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Environment.Exit(1);
+            }
+            string processName = args.Length > 0 ? args[0] : "hockey";
+            Console.Write("Attaching to " + processName + "...");
+            Init(processName);
+            Console.WriteLine("done.");
+            //MemoryEditor.Init();
+            Football Football = new Football();            
+            
+            while(true)
+            {
+                Football.Detection();
+                if (!MemoryEditor.IsAttached())
+                {
+                    Environment.Exit(1);
+                }
+            }
+        }
+        static void Init(string processName)
+        {
+            while (!MemoryEditor.Init(processName)) { }
+
+            MemoryEditor.WriteInt(28, 0x045B290); //server version
+            MemoryEditor.WriteInt(1, 0x4476164); //hide rink
+            MemoryEditor.WriteInt(1, 0x813AF88); //show names on minimap
+
+            byte[] stick_drawing = new byte[5] { 0x90, 0x90, 0x90, 0x90, 0x90 };
+            int stick_drawing_add = 0x0043410A;
+            MemoryEditor.WriteBytes(stick_drawing, stick_drawing_add);
+
+            byte[] code_original = new byte[9] { 0xE9, 0x0C, 0xBA, 0x1C, 0x04, 0x90, 0x90, 0x90, 0x90 };
+            byte[] code_inject = new byte[20] { 0x68, 0x33, 0x33, 0x73, 0x3F, 0x68, 0x33, 0x33, 0x73, 0x3F, 0x68, 0x33, 0x33, 0x73, 0x3F, 0xE9, 0xE4, 0x45, 0xE3, 0xFB };
+
+            int addr_original = 0x004345EF;
+            int addr_inject = 0x04600000;
+
+            MemoryEditor.WriteBytes(code_inject, addr_inject);
+            MemoryEditor.WriteBytes(code_original, addr_original);
+
+            byte[] cbluegoal_original = new byte[9] { 0xE9, 0x3D, 0xBA, 0x1C, 0x04, 0x90, 0x90, 0x90, 0x90 };
+            byte[] cbluegoal_inj = new byte[20] { 0x68, 0x33, 0x33, 0x73, 0x3F, 0x68, 0x33, 0x33, 0x73, 0x3F, 0x68, 0x33, 0x33, 0x73, 0x3F, 0xE9, 0xB3, 0x45, 0xE3, 0xFB };
+
+            int bluegoal_original = 0x004345DE;
+            int bluegoal_inject = 0x04600020;
+
+            MemoryEditor.WriteBytes(cbluegoal_inj, bluegoal_inject);
+            MemoryEditor.WriteBytes(cbluegoal_original, bluegoal_original);
+
+            byte[] spacecolor_o = new byte[6] { 0xE9, 0x36, 0x86, 0x1C, 0x04, 0x90 };
+            byte[] spacecolor_i = new byte[20] { 0x68, 0x14, 0xAE, 0x47, 0x3F, 0x68, 0xA8, 0xC6, 0x2B, 0x3F, 0x68, 0x12, 0x83, 0x20, 0x3F, 0xE9, 0xB7, 0x79, 0xE3, 0xFB };
+
+            int spacolor_a = 0x00437A05;
+            int spacecolor_ainj = 0x04600040;
+
+            MemoryEditor.WriteBytes(spacecolor_i, spacecolor_ainj);
+            MemoryEditor.WriteBytes(spacecolor_o, spacolor_a);
+
+            byte[] warmupovrr_o = new byte[6] { 0xE9, 0x29, 0xD6, 0x1C, 0x04, 0x90 };
+            byte[] warmupovrr_i = new byte[27] { 0x0F, 0x8E, 0x72, 0x2B, 0xE3, 0xFB, 0x81, 0x3D, 0xA0, 0x3D, 0xD3, 0x07, 0xD0, 0x07, 0x00, 0x00, 0x0F, 0x8D, 0x62, 0x2B, 0xE3, 0xFB, 0xE9, 0xBD, 0x29, 0xE3, 0xFB };
+
+            int warmupovrr_a = 0x00432A32;
+            int warmupovrr_ainj = 0x04600060;
+
+            MemoryEditor.WriteBytes(warmupovrr_i, warmupovrr_ainj);
+            MemoryEditor.WriteBytes(warmupovrr_o, warmupovrr_a);
+            //score bg
+            MemoryEditor.WriteBytes(new byte[5] { 0xE9, 0xF6, 0xD6, 0x1C, 0x04 }, 0x004329C6);
+            MemoryEditor.WriteBytes(new byte[50] { 0x68, 0xCD, 0xCC, 0x4C, 0x3E, 0x6A, 0x00, 0x6A, 0x00, 0x6A, 0x00, 0x6A, 0x00, 0x68, 0x00, 0x00, 0xF0, 0x41, 0x68, 0x00, 0x00, 0x16, 0x43, 0x68, 0x00, 0x00, 0xE0, 0x40, 0x68, 0x00, 0x00, 0x57, 0x44, 0x6A, 0xFF, 0xE8, 0xA8, 0x0B, 0xE5, 0xFB, 0xA1, 0x98, 0x3D, 0xD3, 0x07, 0xE9, 0xD8, 0x28, 0xE3, 0xFB }, 0x046000C1);
+            //puck color in minimap
+            MemoryEditor.WriteBytes(new byte[6] { 0xE9, 0xD5, 0xDA, 0x1C, 0x04, 0x90 }, 0x00432621);
+            MemoryEditor.WriteBytes(new byte[20] { 0x68, 0x00, 0x00, 0x80, 0x3F, 0x68, 0x00, 0x00, 0x80, 0x3F, 0x68, 0x00, 0x00, 0x80, 0x3F, 0xE9, 0x18, 0x25, 0xE3, 0xFB }, 0x046000FB);
+            //intermission message and short
+            MemoryEditor.WriteBytes(new byte[5] { 0x68, 0x68, 0x49, 0xD3, 0x07 }, 0x00432C4C);
+            MemoryEditor.WriteBytes(new byte[5] { 0x68, 0xE0, 0x48, 0xD3, 0x07 }, 0x00432E7D);
+            //show timers
+            MemoryEditor.WriteBytes(new byte[5] { 0xE9, 0x20, 0xD7, 0x1C, 0x04 }, 0x004329F0);
+            //07D3490C
+            MemoryEditor.WriteBytes(new byte[158] { 0xE8, 0x66, 0xFF, 0xE4, 0xFB, 0x83, 0xC4, 0x24, 0x83, 0x3D, 0xB4, 0x49, 0xD3, 0x07, 0x00, 0x74, 0x3D, 0xA1, 0xB4, 0x49, 0xD3, 0x07, 0x99, 0xB9, 0x64, 0x00, 0x00, 0x00, 0xF7, 0xF9, 0x50, 0x68, 0x00, 0x00, 0x80, 0x3F, 0x68, 0x00, 0x00, 0x80, 0x3F, 0x68, 0x00, 0x00, 0x80, 0x3F, 0x68, 0x00, 0x00, 0x80, 0x3F, 0x6A, 0x21, 0x68, 0x00, 0x00, 0x20, 0x42, 0x68, 0x00, 0x00, 0xB0, 0x43, 0x68, 0x00, 0x00, 0x00, 0x44, 0x68, 0x50, 0x75, 0x46, 0x00, 0xE8, 0x1D, 0xFF, 0xE4, 0xFB, 0x83, 0x3D, 0xA0, 0x3D, 0xD3, 0x07, 0x00, 0x0F, 0x84, 0x85, 0x28, 0xE3, 0xFB, 0xA1, 0xA0, 0x3D, 0xD3, 0x07, 0x99, 0xB9, 0x64, 0x00, 0x00, 0x00, 0xF7, 0xF9, 0x50, 0x68, 0x00, 0x00, 0x80, 0x3F, 0x68, 0x00, 0x00, 0x80, 0x3F, 0x68, 0x00, 0x00, 0x80, 0x3F, 0x68, 0x00, 0x00, 0x80, 0x3F, 0x6A, 0x21, 0x68, 0x00, 0x00, 0x20, 0x42, 0xFF, 0x35, 0x0C, 0x49, 0xD3, 0x07, 0x68, 0x00, 0x00, 0x00, 0x44, 0x68, 0x50, 0x75, 0x46, 0x00, 0xE8, 0xD2, 0xFE, 0xE4, 0xFB, 0xE9, 0x42, 0x28, 0xE3, 0xFB }, 0x04600115);
+        }
+    }
+}
